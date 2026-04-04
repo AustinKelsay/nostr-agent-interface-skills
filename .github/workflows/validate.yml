@@ -1,0 +1,34 @@
+name: validate
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Validate skill frontmatter and structure
+        run: npx skills-ref validate skills/nostr-agent-interface-cli
+
+      - name: Verify package discovery
+        run: |
+          npx skills add . --list | tee /tmp/skills-list.txt
+          grep -F "nostr-agent-interface-cli" /tmp/skills-list.txt
+
+      - name: Fail if examples pass secrets through argv
+        run: |
+          if grep -R -n -E -- '--private-key|--privateKey|--auth-private-key|--authPrivateKey' skills/nostr-agent-interface-cli; then
+            echo "Found forbidden secret argv examples in the public skill package"
+            exit 1
+          fi
